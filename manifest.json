@@ -1,0 +1,13 @@
+{
+  "name": "Study Planner By MIRAZ",
+  "short_name": "Study Planner",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F8F3F3",
+  "theme_color": "#A30D12",
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
