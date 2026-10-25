@@ -194,6 +194,13 @@ var WD=['রবিবার','সোমবার','মঙ্গলবার','�
 var WDS=['রবি','সোম','মঙ্গল','বুধ','বৃহ','শুক্র','শনি'];
 var WN={1:'সহজ',2:'মাঝারি',3:'কঠিন'};
 var MIN_PER_W=45;
+var EXAMTYPES=[
+ {k:'cert',n:'Certificate Level Exam',subs:['Assurance','Accounting','Business & Finance','Management Information','Principles of Taxation','Business Law','Information Technology']},
+ {k:'prof',n:'Professional Level Exam',subs:['Audit & Assurance','Financial Accounting & Reporting','Business Strategy','Financial Management','Tax Planning and Compliance','Corporate Laws and Practices','IT Governance']},
+ {k:'adv',n:'Advance Level Exam',subs:['Corporate Reporting','Strategic Business Management','Case Study']},
+ {k:'other',n:'অন্যান্য',subs:[]}
+];
+function etype(k){return EXAMTYPES.find(function(x){return x.k===k})||EXAMTYPES[0]}
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
 var uid=function(){return Math.random().toString(36).slice(2,9)};
@@ -287,7 +294,7 @@ function streakOf(S){
 /*DOM*/
 /* ---------- state & storage ---------- */
 var S=null, UI={tab:'home',layer:null,confirm:null,mode:'local'}, W=null;
-var T={mode:'focus',dur:1500,left:1500,run:false,endAt:0,topic:'',iv:null,ac:null};
+var T={mode:'focus',dur:1500,left:1500,run:false,endAt:0,topic:'',iv:null,ac:null,cf:25,cb:5};
 var LS='sp_bn_v1';
 var $=function(s){return document.querySelector(s)};
 function loadLocal(){try{var j=localStorage.getItem(LS);if(j){var o=JSON.parse(j);if(o&&o.exams)return o}}catch(e){}return null}
@@ -470,7 +477,8 @@ function wizardHtml(){
   var s=W.step,h='<div class="sheet full" role="dialog" aria-modal="true" aria-label="নতুন পরীক্ষা"><div class="sheet-head"><h2>'+(s===1?'পরীক্ষার তথ্য':s===2?'বিষয় ও টপিক':'রুটিন প্রিভিউ')+'</h2><button class="btn sm ghost" data-act="close">বন্ধ করুন</button></div>'+
     '<div class="steps" aria-label="ধাপ '+bn(s)+'/৩">'+[1,2,3].map(function(i){return '<i class="'+(i<=s?'on':'')+'"></i>'}).join('')+'</div>';
   if(s===1){
-    h+='<div class="field"><label for="w-name">পরীক্ষার নাম</label><input type="text" id="w-name" value="'+esc(W.name)+'" placeholder="যেমন: Certificate Level Exam"></div>'+
+    h+='<div class="field"><label for="w-type">পরীক্ষার নাম</label><select id="w-type" data-chg="wtype">'+EXAMTYPES.map(function(x,i){return '<option value="'+x.k+'"'+(W.type===x.k?' selected':'')+'>'+bn(i+1)+'. '+esc(x.n)+'</option>'}).join('')+'</select></div>'+
+    (W.type==='other'?'<div class="field"><label for="w-name">পরীক্ষার নাম লিখুন</label><input type="text" id="w-name" value="'+esc(W.name)+'" placeholder="আপনার পরীক্ষার নাম"></div>':'')+
     '<div class="field"><label for="w-date">পরীক্ষার তারিখ</label><input type="date" id="w-date" value="'+esc(W.date)+'" min="'+addD(today(),1)+'"></div>'+
     '<div class="field"><span class="lbl">দৈনিক পড়ার সময়</span><span class="stepper"><button class="btn sm ghost" data-act="whours" data-d="-1" aria-label="কমান">−</button><output id="w-hours">'+bn(W.hours)+' ঘণ্টা</output><button class="btn sm ghost" data-act="whours" data-d="1" aria-label="বাড়ান">+</button></span></div>'+
     offBlock(W.dayOffs,W.holidays,'w')+
@@ -478,7 +486,7 @@ function wizardHtml(){
   }else if(s===2){
     h+='<p class="sub">প্রতি লাইনে একটি টপিক বা অধ্যায় লিখুন বা পেস্ট করুন। কঠিন টপিকের শেষে ! আর সহজ টপিকের শেষে ~ দিন।</p>';
     W.subs.forEach(function(sb,i){
-      h+='<div class="subcard"><div class="field"><label for="w-sn-'+i+'">বিষয়ের নাম</label><input type="text" id="w-sn-'+i+'" value="'+esc(sb.name)+'" placeholder="যেমন: Management Information"></div>'+
+      h+='<div class="subcard"><div class="field"><label for="w-sn-'+i+'">বিষয়ের নাম</label>'+(W.type==='other'?'<input type="text" id="w-sn-'+i+'" value="'+esc(sb.name)+'" placeholder="বিষয়ের নাম লিখুন">':'<select id="w-sn-'+i+'"><option value="">বিষয় বাছুন</option>'+etype(W.type).subs.map(function(n){return '<option value="'+esc(n)+'"'+(sb.name===n?' selected':'')+'>'+esc(n)+'</option>'}).join('')+'</select>')+'</div>'+
       '<div class="field"><label for="w-st-'+i+'">টপিক তালিকা</label><textarea id="w-st-'+i+'" placeholder="Chapter 1: The Fundamentals of Costing&#10;Chapter 1: Calculating Unit Costs (Part 1)!">'+esc(sb.text)+'</textarea></div>'+
       '<div class="field"><label for="w-sw-'+i+'">সাধারণ কাঠিন্য</label><select id="w-sw-'+i+'">'+[1,2,3].map(function(w){return '<option value="'+w+'"'+(sb.w===w?' selected':'')+'>'+WN[w]+'</option>'}).join('')+'</select></div>'+
       (W.subs.length>1?'<div><button class="btn sm ghost" data-act="wdel" data-i="'+i+'">এই বিষয় সরান</button></div>':'')+'</div>';
@@ -503,7 +511,7 @@ function parseTopics(text,w){
 }
 function buildExam(){
   var subs=W.subs.map(function(s,i){return{id:uid(),name:(s.name||'').trim()||'বিষয় '+bn(i+1),topics:parseTopics(s.text,s.w)}}).filter(function(s){return s.topics.length});
-  var ex={id:uid(),name:W.name.trim()||'আমার পরীক্ষা',date:W.date,hours:W.hours,dayOffs:W.dayOffs.slice(),holidays:W.holidays.slice(),created:today(),subjects:subs};
+  var ex={id:uid(),name:(W.type==='other'?W.name.trim():etype(W.type).n)||'আমার পরীক্ষা',date:W.date,hours:W.hours,dayOffs:W.dayOffs.slice(),holidays:W.holidays.slice(),created:today(),subjects:subs};
   return generate(ex);
 }
 function wSync(){
@@ -539,15 +547,16 @@ function focusHtml(){
     list.slice(0,40).forEach(function(x){opts+='<option value="'+x.t.id+'"'+(T.topic===x.t.id?' selected':'')+'>'+esc(x.s.name)+': '+esc(x.t.name)+'</option>'});}
   var fm=S.focus[today()]||0;
   return '<div class="sheet" role="dialog" aria-modal="true" aria-label="ফোকাস টাইমার"><div class="sheet-head"><h2>ফোকাস টাইমার</h2><button class="btn sm ghost" data-act="close">বন্ধ করুন</button></div>'+
-    '<div class="seg" style="grid-template-columns:1fr 1fr"><button data-act="tmode" data-m="focus" aria-pressed="'+(T.mode==='focus')+'">পড়া ২৫ মি.</button><button data-act="tmode" data-m="break" aria-pressed="'+(T.mode==='break')+'">বিরতি ৫ মি.</button></div>'+
+    '<div class="seg" style="grid-template-columns:1fr 1fr"><button data-act="tmode" data-m="focus" aria-pressed="'+(T.mode==='focus')+'">পড়া '+bn(T.cf)+' মি.</button><button data-act="tmode" data-m="break" aria-pressed="'+(T.mode==='break')+'">বিরতি '+bn(T.cb)+' মি.</button></div>'+
     '<div class="timer" id="tm" role="timer" aria-live="off">'+mmss(T.left)+'</div>'+
+    '<div class="field"><label for="f-min">নিজের সময় ঠিক করুন ('+(T.mode==='focus'?'পড়া':'বিরতি')+', মিনিটে)</label><div style="display:flex;gap:8px"><input type="number" id="f-min" inputmode="numeric" min="1" max="600" value="'+(T.dur/60)+'" style="flex:1;min-width:0;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg)"><button class="btn" data-act="tset">সেট করুন</button></div></div>'+
     '<div class="field"><label for="f-topic">কোন টপিক পড়ছেন</label><select id="f-topic" data-chg="ftopic">'+opts+'</select></div>'+
     '<div class="foot"><button class="btn" data-act="tstart" id="tstart">'+(T.run?'থামান':(T.left<T.dur?'আবার চালু করুন':'শুরু'))+'</button><button class="btn ghost" data-act="treset">রিসেট</button></div>'+
     '<p class="sub" style="text-align:center">আজ মোট ফোকাস: '+bn(Math.floor(fm/60))+' ঘণ্টা '+bn(fm%60)+' মিনিট</p></div>';
 }
 
 /* ---------- timer ---------- */
-function setMode(m){T.mode=m;T.dur=m==='focus'?1500:300;T.left=T.dur;T.run=false;clearInterval(T.iv)}
+function setMode(m){T.mode=m;T.dur=(m==='focus'?T.cf:T.cb)*60;T.left=T.dur;T.run=false;clearInterval(T.iv)}
 function beep(){try{var ac=T.ac;if(!ac)return;[0,0.32].forEach(function(o){var os=ac.createOscillator(),g=ac.createGain();os.frequency.value=880;g.gain.value=0.15;os.connect(g);g.connect(ac.destination);os.start(ac.currentTime+o);os.stop(ac.currentTime+o+0.22)})}catch(e){}}
 function addFocus(mins){if(mins<=0)return;var d=today();S.focus[d]=(S.focus[d]||0)+mins;save()}
 function tick(){
@@ -557,7 +566,7 @@ function tick(){
   var fc=$('#fchip');if(fc)fc.textContent=mmss(T.left);
   if(T.left<=0){
     var wasFocus=T.mode==='focus';clearInterval(T.iv);T.run=false;beep();
-    if(wasFocus){addFocus(Math.round(T.dur/60));toast('ফোকাস শেষ! ৫ মিনিট বিরতি নিন।');setMode('break')}
+    if(wasFocus){addFocus(Math.round(T.dur/60));toast('ফোকাস শেষ! '+bn(T.cb)+' মিনিট বিরতি নিন।');setMode('break')}
     else{toast('বিরতি শেষ। আবার শুরু করুন।');setMode('focus')}
     if(UI.layer&&UI.layer.k==='focus')renderLayer();render();
   }
@@ -614,7 +623,7 @@ var ACT={
     if(!nd){toast('এগিয়ে আনার মতো টপিক নেই।');return}
     var i=nd.items.findIndex(function(i){return !i.rev&&!topicDone(ex,i.tid)});var it=nd.items.splice(i,1)[0];td.items.push(it);save();render();toast('একটি টপিক আজকের তালিকায় আনা হয়েছে।');
   },
-  wiz:function(){W={step:1,name:'',date:addD(today(),30),hours:4,dayOffs:[5],holidays:[],subs:[{name:'',text:'',w:2}]};openLayer({k:'wizard'})},
+  wiz:function(){W={step:1,type:'cert',name:'',date:addD(today(),30),hours:4,dayOffs:[5],holidays:[],subs:[{name:'',text:'',w:2}]};openLayer({k:'wizard'})},
   whours:function(b){wSync();W.hours=Math.min(12,Math.max(1,W.hours+(+b.dataset.d)));$('#w-hours').textContent=bn(W.hours)+' ঘণ্টা'},
   wadd:function(){wSync();W.subs.push({name:'',text:'',w:2});renderLayer()},
   wdel:function(b){wSync();W.subs.splice(+b.dataset.i,1);renderLayer()},
@@ -622,11 +631,12 @@ var ACT={
   wnext:function(){
     wSync();
     if(W.step===1){
-      if(!W.name.trim()){wErr('পরীক্ষার নাম লিখুন।');return}
+      if(W.type==='other'&&!W.name.trim()){wErr('পরীক্ষার নাম লিখুন।');return}
       if(!W.date||dn(W.date)<=dn(today())){wErr('আজকের পরের একটি তারিখ বাছুন।');return}
     }else if(W.step===2){
       var any=W.subs.some(function(s){return parseTopics(s.text,s.w).length});
       if(!any){wErr('অন্তত একটি টপিক লিখুন।');return}
+      if(W.type!=='other'&&W.subs.some(function(s){return parseTopics(s.text,s.w).length&&!s.name})){wErr('টপিক লেখা প্রতিটি বিষয়ের নাম বাছুন।');return}
     }
     W.step++;renderLayer();
   },
@@ -647,6 +657,13 @@ var ACT={
     try{T.ac=T.ac||new (window.AudioContext||window.webkitAudioContext)();if(T.ac.state==='suspended')T.ac.resume()}catch(e){}
     T.run=true;T.endAt=Date.now()+T.left*1000;clearInterval(T.iv);T.iv=setInterval(tick,500);renderLayer();render();
   },
+  tset:function(){
+    if(T.run){toast('আগে টাইমার থামান।');return}
+    var v=Math.round(+($('#f-min').value));
+    if(!(v>=1&&v<=600)){toast('১ থেকে ৬০০ মিনিটের মধ্যে সময় দিন।');return}
+    if(T.mode==='focus'){T.cf=v;S.tf=v}else{T.cb=v;S.tb=v}
+    save();setMode(T.mode);renderLayer();render();toast('সময় সেট হয়েছে: '+bn(v)+' মিনিট।');
+  },
   treset:function(){
     if(T.mode==='focus'&&T.left<T.dur){addFocus(Math.floor((T.dur-T.left)/60))}
     setMode(T.mode);renderLayer();render();
@@ -658,6 +675,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
   var t=e.target,k=t.dataset&&t.dataset.chg;if(!k)return;
+  if(k==='wtype'){wSync();if(W.type!==t.value){W.type=t.value;W.subs.forEach(function(s){s.name=''})}renderLayer();return}
   var ex=cur();
   if(k==='asub'){UI.add.sub=t.value;renderLayer()}
   else if(k==='ftopic'){T.topic=t.value}
@@ -673,6 +691,7 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden){if(
   S=loadLocal();
   if(!S){S={v:1,exams:[],active:null,theme:'auto',focus:{}};}
   if(!S.focus)S.focus={};
+  T.cf=S.tf||25;T.cb=S.tb||5;T.dur=T.cf*60;T.left=T.dur;
   migrate();checkMissed();applyTheme();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
