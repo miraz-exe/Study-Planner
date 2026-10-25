@@ -686,6 +686,9 @@ document.addEventListener('input',function(e){
 });
 document.addEventListener('visibilitychange',function(){if(!document.hidden){if(T.run)tick();if(S){var before=JSON.stringify(S.exams.map(function(e){return e.plan.length}));checkMissed();render()}}});
 
+
+/* ---------- offline (service worker) ---------- */
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 /* ---------- start ---------- */
 (function(){
   S=loadLocal();
